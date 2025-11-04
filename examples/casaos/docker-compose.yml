@@ -1,0 +1,159 @@
+name: rtorrent-rutorrent
+
+services:
+  rtorrent-rutorrent:
+    image: crazymax/rtorrent-rutorrent:latest
+    container_name: rtorrent-rutorrent
+    network_mode: bridge
+    environment:
+      TZ: Etc/UTC
+      PUID: "1000"
+      PGID: "1000"
+      RT_DHT_PORT: "6881"
+      RT_INC_PORT: "50000"
+      XMLRPC_PORT: "8000"
+      RUTORRENT_PORT: "8080"
+      WEBDAV_PORT: "9000"
+      MEMORY_LIMIT: 512M
+      UPLOAD_MAX_SIZE: 16M
+      RT_LOG_LEVEL: info
+    ports:
+      - target: 6881
+        published: "6881"
+        protocol: udp
+      - target: 8000
+        published: "8000"
+        protocol: tcp
+      - target: 8080
+        published: "8080"
+        protocol: tcp
+      - target: 9000
+        published: "9000"
+        protocol: tcp
+      - target: 50000
+        published: "50000"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/$AppID/data
+        target: /data
+      - type: bind
+        source: /DATA/AppData/$AppID/downloads
+        target: /downloads
+      - type: bind
+        source: /DATA/AppData/$AppID/passwd
+        target: /passwd
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+    restart: unless-stopped
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            en_us: Timezone used by rTorrent/ruTorrent.
+        - container: PUID
+          description:
+            en_us: User ID that owns downloads and config files.
+        - container: PGID
+          description:
+            en_us: Group ID that owns downloads and config files.
+        - container: RT_DHT_PORT
+          description:
+            en_us: UDP port used for DHT.
+        - container: RT_INC_PORT
+          description:
+            en_us: TCP port used for incoming peer connections.
+        - container: XMLRPC_PORT
+          description:
+            en_us: XMLRPC endpoint proxied by nginx.
+        - container: RUTORRENT_PORT
+          description:
+            en_us: Web interface HTTP port.
+        - container: WEBDAV_PORT
+          description:
+            en_us: WebDAV port for completed downloads.
+      ports:
+        - container: "6881"
+          description:
+            en_us: UDP port for DHT peer discovery.
+        - container: "8000"
+          description:
+            en_us: XMLRPC over HTTP.
+        - container: "8080"
+          description:
+            en_us: ruTorrent web interface.
+        - container: "9000"
+          description:
+            en_us: WebDAV for completed downloads.
+        - container: "50000"
+          description:
+            en_us: Incoming BitTorrent connections.
+      volumes:
+        - container: /data
+          description:
+            en_us: rTorrent session data and logs.
+        - container: /downloads
+          description:
+            en_us: Active and completed downloads.
+        - container: /passwd
+          description:
+            en_us: Optional htpasswd files for ruTorrent, XMLRPC, and WebDAV.
+
+  geoip-updater:
+    image: crazymax/geoip-updater:latest
+    container_name: geoip-updater
+    network_mode: bridge
+    depends_on:
+      - rtorrent-rutorrent
+    environment:
+      SCHEDULE: "@daily"
+      ACCOUNT_ID: ""
+      LICENSE_KEY: ""
+      EDITION_IDS: GeoLite2-City,GeoLite2-Country
+    volumes:
+      - type: bind
+        source: /DATA/AppData/$AppID/data/geoip
+        target: /data
+    restart: unless-stopped
+    x-casaos:
+      envs:
+        - container: ACCOUNT_ID
+          description:
+            en_us: MaxMind account ID (required for paid databases).
+        - container: LICENSE_KEY
+          description:
+            en_us: MaxMind license key.
+        - container: EDITION_IDS
+          description:
+            en_us: Comma separated list of MaxMind edition IDs to download.
+        - container: SCHEDULE
+          description:
+            en_us: Cron schedule used to refresh the databases.
+      volumes:
+        - container: /data
+          description:
+            en_us: Stores downloaded MaxMind GeoIP databases.
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm
+    - arm64
+  main: rtorrent-rutorrent
+  author: crazy-max
+  category: Downloader
+  description:
+    en_us: |
+      All-in-one Docker deployment for rTorrent and ruTorrent featuring nginx, optional GeoIP database updates, and persistent storage mapping compatible with CasaOS.
+  developer: crazy-max
+  icon: https://raw.githubusercontent.com/crazy-max/docker-rtorrent-rutorrent/master/.github/docker-rtorrent-rutorrent.jpg
+  tagline:
+    en_us: rTorrent with ruTorrent web UI packaged for CasaOS.
+  tips: {}
+  title:
+    en_us: rTorrent & ruTorrent
+  index: /
+  port_map: "8080"
