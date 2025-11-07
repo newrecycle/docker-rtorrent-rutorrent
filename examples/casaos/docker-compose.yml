@@ -136,6 +136,17 @@ services:
         - container: /data
           description:
             en_us: Stores downloaded MaxMind GeoIP databases.
+            
+  rtorrent-logs:
+  image: bash
+  container_name: rtorrent-rutorrent-logs
+  command: bash -c 'tail -f /log/*.log'
+  network_mode: none
+  depends_on:
+    - rtorrent-rutorrent
+  volumes:
+    - "./data/rtorrent/log:/log"
+  restart: always
 
 x-casaos:
   architectures:
